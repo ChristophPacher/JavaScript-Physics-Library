@@ -1,0 +1,212 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Untitled Document</title>
+<link href="style/style.css" rel="stylesheet" type="text/css" /></head>
+
+<body>
+<h1>Javascript Physics Libary Documentation</h1>
+<h2>Features and Notes:</h2>
+<ul>
+  <li>Axis oriented bounding box collision dection (AABB) and a sweep version of the algorithm for collision dection between fast objects (change this.collAABB(p1, p2) to this.collAABBsweep(p1, p2) in PhysicsWorld.js in line 97 to switch between the two)
+  </li><br />
+  <li>Second order Runge Kutta numerical integration for smaller intergration errors and more stable spring forces
+  </li><br />
+  <li>Boxes can take engery out of a collision if mRestitutionN &gt; 0. If this value is larger than 0.0 boxes will have a hard time to come to rest on top of each other. 
+  </li>
+  <br />
+  <li>The Boxes are influence by air drag. The drag coefficient mDragN is computed inscientifically (proportionally to box widht and height) by updateDrag() after every scale update of the box. You can adapt this to your liking. </li><br />
+  <li>The Boxes are influenced by contact friction proportionaly to the collision velocity and mFrictionN
+  </li><br />
+  <li>It is possible to apply an impulse on a particle by using particle.mExternalImpulsesA.push([x,y,z]);
+  </li>
+  <br />
+  <li>To use scriptaculous with the physics engine I needed to adapt the core effects scale and move, so they interact with the engine. I extended them to MoveP and ScaleP, you find them in EffectsParticle.js. ScaleP can scale only around the center of the particle. All combined effects can now easily be adapted to the pysics engine, by using this two extended core effects, see ShakeP for an example.
+  </li><br />
+  <li>MoveP ensures that the particle ends up at the coordinates as defined in the options of the effect. MoveImP applies impuleses. The vector defined by the options divided by the change variable of the move effect, to be exact. So there is an ease in and out in the strenght of the impulese applied over the time of the effect. The particle is still influenced by forces and collisions.
+  </li>
+  <br />
+  <li>Boxes can be dragged and dropped. Mouse screen coordianetes can be transformed back into 3D, so drag and drop works with the 2D and 3D renderer. See the demo implementation and the code snippeds in the getting started tutrorial, for more information. </li>
+  <br />
+  <li>Particles and/ or theircollisions can be killed with world.killParticle(pP) and particle.killCollisions()</li>
+  <br />
+  <li>I optimized the engine by using simple arrays for vectors and and performing vector math directly with the array contents. Every function and class call is costly in javascript, when there are several thousand per second. By this, I could reduce the step time of the simulation of a 6 story pyramid  from 90ms to 17ms on my Core2 Duo 2.4 GHz laptop in firefox.
+  </li>
+  <br />
+  <li>The projection and drawing of the boxes is encapsuled in the renderer classes. R2D has no perspective projection and the origin is by default in the lower left corner of the viewport. R3D has perspective projection and the origin is in the middel of the view port. In both renderers the camera can be moved. There is no rotation or rolling implemented. In the demo app the camera can be moved with the keys a,w,s,d und cursor up and down. 
+  </li><br />
+  <li>There are several types of additional forces, which can be applied to selected particles. Every forces can be turned on and off. There are general Omi Forces like wind and Omni forces that are mass indipendent like gravity. One instance of these can affect several particles. A particle can always be remove from or added to an Omni force. Moreover there are Attraction/Repell and Spring forces, one instance for every force between two particles. In the demo i only implemented the possibility to add spring/repell forces between particle p20 and all other particles. </li>
+  <br />
+  <li>Boxes fall asleep to save cpu cycles. The sleep algorithm was spifically adapted to work with all types for forces as well as drag and drop. Collisions still need to be calculated. (the box color is changed from red to green in the renderers draw function)
+  </li> <br />
+  <li>Internet Explorer needs a catch block between try /finally blocks. I added one in Prototype's  PeriodicalExecuter Class in the onTimerEvent function
+  </li><br />
+  <li>I adapted scriptaculous with 3 lines of code, so that no frames are skipped when the browser lags behind. Frame skips in animations would be seen by the physics engine as a larger impulse, as the engine runs by fixed time steps and does not skip frames, to prevent the simulation from exploding. Large Impulses would result in larger velocities, which would be different from the intended animation. See timePos = this.MyOldPos + 15; in effects.js line 278 for the changes. You need to adapt every new scriptaculous version if you want to upgrade, or you just ignore it if it does not bother you. 
+  </li>
+  <br />
+</ul>
+<h2>Getting Started:</h2>
+<p>The follwing Guide describes the Code of the demo app. </p>
+<h3>Includes:</h3>
+<p>You have to put the following includes in the head of your html file. Be sure that the includes point to the position where you placed the folders with the js files. </p>
+<pre> 
+&lt;script src=&quot;prototype/prototype.js&quot;  type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;scriptaculous/scriptaculous.js&quot;  type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;scriptaculous/unittest.js&quot;  type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;physics/Vector.js&quot;  type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;physics/PhysicsWorld.js&quot;  type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;physics/PhysicsForce.js&quot;  type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;physics/PhysicsParticle.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;physics/PhysicsCollision.js&quot;  type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;physics/EffectsParticle.js&quot;  type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;physics/Renderer.js&quot;  type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;MyUtilities.js&quot;  type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+</pre>
+<h3>Viewport and Renderer:</h3>
+<p>First get the dimensions of the browser window:</p>
+<pre>var windowDim = MyUtilities.getWindowDimensions();
+</pre>
+<p>Create a new Renderer (R3D or R2D), pass the window dimensions and define the viewport inside the window:</p>
+<pre>var myRenderer = new Renderer.R3D(windowDim, [50, 50], [windowDim.width -100 , windowDim.height- 100]);</pre>
+<p>[50, 50] defines the upper left corner of the viewport in browser coordinates (in px, origin is the upper left of the browser window, y+ points down).</p>
+<p>You can set and animate the position of the camera by setting its position vector:</p>
+<pre>myRenderer.mCameraPosV3D = [1,2,3];</pre>
+<h3>World</h3>
+<p>Its time to create your world and pass the renderer you just created:</p>
+<pre>var myWorld = new Physics.World3D(myRenderer);</pre>
+<p>Then define the bounds of the world. Parcticles collide with these. Default is min[0,0,0], max [100,100,100]</p>
+<pre>myWorld.mBoundsMinV3D = [0, 0, 0];
+myWorld.mBoundsMaxV3D =  [10, 10, 10];</pre>
+<p>You can start and stop the simulation with:</p>
+<pre>myWorld.start(); 
+myWorld.stop();
+myWorld.toggleStartStop();</pre>
+<p>But you have not created any particles yet. </p>
+<h3>Particles/boxes</h3>
+<p>A box can be an HTML element like a &lt;div&gt; or &lt;img&gt;. This element can already exist in your HTML document. You then just need the ID of the element </p>
+<pre>var element = document.getElementById("myID");</pre>
+<p>and add some costom style variables that are needed for the scaling of the text. Those should be the the font values of your text when the particle's scale  is 1.0: </p>
+<pre>
+element.startFontSize = 16;
+element.fontSizeType = "px";
+</pre>
+<p> If you have done this, you can skip the next steps and continue with the paragraph where you append the element to the body and create the particle.</p>
+<p>Otherwise you can create the element on the fly, like i do it in the demo:</p>
+<pre> var element = document.createElement('div');
+ </pre>
+<p>You can write content insde the element by writing to the innerHtml node: </p>
+<pre>element.innerHTML = ' p' + myWorld.mParticlesA.length + &quot;Lorem ipsum dolor sit amet, consetetur sadipscing elitr&quot;;
+</pre>
+<p>Then set the style of the text, as well as extra information for the modified scale effect ScaleP (dont forget to set these if you created your div with normal HTML)</p>
+<pre>element.style.fontSize = "16px";
+
+// custom style entries needed to correctly scale
+// the content of the div
+element.startFontSize = 16;
+element.fontSizeType = "px";
+
+element.id = 'p' + myWorld.mParticlesA.length;
+element.style.position = 'absolute';
+element.style.width = BoxWidth  + 'px';
+element.style.height = BoxWidth + 'px';
+element.style.backgroundColor = '#ddd';
+element.style.MozUserSelect="none";
+</pre>
+<p>Now add the element to the document body and use the id of the element to create a new particle in the engine, that uses the element as its sprite. The Html element, also needs a reference to the particle in the engine:</p>
+<pre>document.body.appendChild(element);
+//position in meters, box extensions from postion in m, mass in kg, start velocity in m/s2, the representing DOM element
+element.particle = myWorld.addParticle([posx, posy, posz], [BoxWidth * myRenderer.px2m /2, BoxWidth * myRenderer.px2m /2, BoxWidth * myRenderer.px2m /2], 1, [0,0,0], element);</pre>
+<p>Set the restitution and friction of the box to your liking: </p>
+<pre>element.particle.mRestitutionN = 0.0;
+element.particle.mFrictionN = 0.5;</pre>
+<p>If you want to set manulally a new scale of the particle do it by setting:</p>
+<pre>element.particle.mNewScaleN = 0.5;
+</pre>
+<p>The particle will then be scaled by the engine and updateDrag() is automatically called. </p>
+<p>You can kill a particle by using:</p>
+<pre>myWorld.killParticle(p);
+</pre>
+<p>All it's refences to collisions and forces will be deleted too. </p>
+<h3>Forces:</h3>
+<p>Lets start with the general forces like wind and gravity, that affect several particles all in the same way. There is only one difference between them, as the acceleration of gravity is independent from the the mass of the particle. These two forces are implemented as Omni and OmniMassInd: </p>
+<pre>
+// parameters: id, world, [affectedParticleN, .....], acceleration vector
+var wind = new Physics.Omni('wind', myWorld, MyUtilities.copyArray(myWorld.mParticlesA), [2, 0, 0]);
+var grav = new Physics.OmniMassInd('grav', myWorld, MyUtilities.copyArray(myWorld.mParticlesA), [0, -9.8, 0]</pre>
+<p>After the creation of an Omni force you can remove or add a particle by using:</p>
+<pre>wind.removeParticle(p);
+wind.addParticle(p);</pre>
+<p>Then there are more specific forces that exist between two particles. </p>
+<p>The first one is Attraction, which can repell too, if its' strength is set negative. You have to make sure that the particles are awake, for the force to work instantly:</p>
+<pre>// parameters: 
+// the id string of the force
+// the world
+// the affected particle 
+// the source particle 
+// is the source attracted to the other particle 
+// the strength of the attraction, repells when negative
+// the min 
+// and max distance (m) between the particles for the force to work in
+new Physics.Attraction('attrP20', myWorld, p, myWorld.mParticlesA[20], true, -10, 0.5, 3);
+p.setAwake(true);
+myWorld.mParticlesA[20].setAwake(true);</pre>
+<p>Then there are Spring forces, that push and pull the connected particles, until the rest lenght of the spring is reached:</p>
+<pre>// parameters: 
+// the id string of the force
+// the world
+// the affected particle 
+// the source particle 
+// is the source pulled to the other particle by the spring
+// the spring constant, the larger, the stiffer
+// the restlenght of the spring in m
+// the damping, how much kinetic energy is lost because of stretching and compressing of the spring, controls how fast the particles come to rest
+new Physics.Spring('sprP20', myWorld, p, myWorld.mParticlesA[20], true, 7, 2, 0.2);
+p.setAwake(true);
+myWorld.mParticlesA[20].setAwake(true);</pre>
+<p>You can set all forces on and off and kill forces by using e.g.:</p>
+<pre>wind.setOn(false);
+wind.setOn(true);
+myWorld.killForce(wind);</pre>
+<p>You can give every particle an impluse, an instant acceleration, by pushing an acceleration vector on the mExternalImpulsesA array. The vector will be taken from the stack in the next simulation step. You have to make sure, that the particle is awake, otherwise the impulse will not affect the particle:</p>
+<pre>p.setAwake(true);
+p.mExternalImpulsesA.push([0, 0, 0.5]);</pre>
+<h3>Effects:</h3>
+<p>As I already mentioned in the notes, all scriptaculous effects need to be adapted before they can be used with the physics engine. I already did this, for Scale, Move and Shake. All combined effects that use Move and Scale can be easily adapted. I will go through the process on the example of the effect Puff. </p>
+<p>First I copied over the effect declaration of Puff from scriptaculous/effects.js to physics/EffectsParticle.js and renamed the class to Effect.PuffP. The effect creates interanally two effects that run in sync: Effect.Scale and Effect.Opacity. All that has to be done is to rename Effect.Scale to Effect.ScaleP  and we are finished, as Effect.Opacity did not need to be adapted to the engine. The result looks like this:</p>
+<pre>Effect.PuffP = function(element) {
+  element = $(element);
+  var oldStyle = {
+    opacity: element.getInlineOpacity(),
+    position: element.getStyle('position'),
+    top:  element.style.top,
+    left: element.style.left,
+    width: element.style.width,
+    height: element.style.height
+  };
+  return new Effect.Parallel(
+  // changes: replaces Scale by ScaleP
+   [ new Effect.ScaleP(element, 200,
+      { sync: true, scaleFromCenter: true, scaleContent: true, restoreAfterFinish: true }),
+     new Effect.Opacity(element, { sync: true, to: 0.0 } ) ],
+     Object.extend({ duration: 1.0,
+      beforeSetupInternal: function(effect) {
+        Position.absolutize(effect.effects[0].element)
+      },
+      afterFinishInternal: function(effect) {
+         effect.effects[0].element.hide().setStyle(oldStyle); }
+     }, arguments[1] || { })
+   );
+};</pre>
+<p>You can now for instance use the effect before you kill a particle, like i do it in the demo:</p>
+<pre>new Effect.PuffP(elem, {duration:0.7, fps: 20, afterFinish: function(effect) {
+                            effect.effects[0].mParticleP.mWorldW3D.killParticle(effect.effects[0].mParticleP);
+}});</pre>
+<p>Check the demo app for more examples how to use the already adapted effects. You should then have no problems creating your own effects. </p>
+<p>For more information about the handling of effects, like their options or how to queu or sync them, check the scriptaculous help. </p>
+<h3>Drag and Drop:</h3>
+<p>Drag and Drop in combination with normal clicks on particles and a working wakeup and sleeping system, is a little tricky. It's best you take a long look at the implementation of the demo app. I only describe some key points of my implementation, the rest should be obvious from my code.</p>
+<p>First you need two different moveHandler functions that get the mouse coordinates, one for IE and one for all the other browsers.</p>
+<p>Most of the magic happens in the mouseUpdater function, which is called periodically. There I check if the mousebutton has been held down on a particle for longer than 2 engine steps. Only then I set the flag, that the particle is dragged. If it is dragged, I acitvate all flags, so that the engine no more computes forces, collisionsImpulses, does not integrate the velocity and position and that it is controlled externally (by the user). Then there is a special case, if the particle has spring or attraction forces. Then all the connected particles need to be woke up periodically, because the code that would wake them up otherwise, located in the force calculation during integration is not called when the particle is dragged. From then on you just have to position the particle according to the mouse coordinates. The myRenderer.screen2world() function nicely projects the mouse screen coordinates back into the 3D simulation space</p>
+</body>
+</html>

@@ -1,0 +1,540 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>JavaScript Physics Libary Test by Christoph Pacher </title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <script type='text/javascript' src='http://ajax.googleapis.com/ajax/libs/prototype/1.6.1/prototype.js'></script> 
+  <script type='text/javascript' src='http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js'></script> 
+  <script type='text/javascript'>try{jQuery.noConflict();}catch(e){};</script> 
+  <script type='text/javascript' src='http://ajax.googleapis.com/ajax/libs/scriptaculous/1.8.3/scriptaculous.js'></script>
+  <script src="jQuery/jquery.batchImageLoad.js" type="text/javascript"></script>
+  <script src="physics/Vector.js" type="text/javascript"></script>
+  <script src="physics/PhysicsWorld.js" type="text/javascript"></script>
+  <script src="physics/PhysicsForce.js" type="text/javascript"></script>
+  <script src="physics/PhysicsParticle.js" type="text/javascript"></script>
+  <script src="physics/PhysicsCollision.js" type="text/javascript"></script>
+  <script src="physics/EffectsParticle.js" type="text/javascript"></script>
+  <script src="physics/Renderer.js" type="text/javascript"></script>
+  <script src="MyUtilities.js" type="text/javascript"></script>
+  <link rel="stylesheet" type="text/css" media="screen" href="style/style.css" />
+  
+  
+  <script type="text/javascript" charset="utf-8">
+    Position.includeScrollOffsets = true;
+  </script>
+
+<body style="background-color:black;user-select: none; -khtml-user-select: none; -moz-user-select: none;">
+<h1 style="position:absolute;left:0px;top:0px;z-index:2000;color:silver;">javascript physics libary test</h1>
+
+<div id="rahmen" style="position:absolute; top:50px; left:50px; bottom:50px; right:50px;background-color:white;">
+    <div id="start" class="button"> start/stop </div>
+    <div id="wind" class="button"> wind on/off </div>
+    <div id="grav" class="button"> gravity on/off </div>
+    <div id="kill" class="button2"> kill box </div>
+    <div id="scale" class="button2"> scale box </div>
+    <div id="shake" class="button2"> shake box </div>
+    <div id="move" class="button2"> move box </div>
+    <div id="move2" class="button2"> moveImp box </div>
+    <div id="z" class="button2"> zImpulse box </div>
+    <div id="new" class="button2"> new box </div>
+    <div id="remWind" class="button2"> removeWind box </div>
+    <div id="attr" class="button2"> attract to p20 </div>
+    <div id="spring" class="button2"> spring to p20 </div>
+    <div id="killF" class="button2"> kill Forces to p20 </div>
+    
+    <div id="debugOut1" class="debugBox">debugout1</div>
+    <div id="debugOut2" class="debugBox">debugout2</div>
+</div>
+
+<script type="text/javascript">
+var matv = V3DP;
+
+var windowDim = MyUtilities.getWindowDimensions();
+
+viewportPadding = [50, 50];
+viewportOrigin = [viewportPadding[0], viewportPadding[1]];
+viewportDim = [windowDim.width - 2*this.viewportPadding[0], windowDim.height - 2*viewportPadding[1]];
+
+
+// tell the renderer the dimensions of the browser window,
+// the viewport origin (upper left corner) and viewport dimensions. all in px
+var myRenderer = new Renderer.R3D(windowDim, viewportOrigin, viewportDim);
+var myWorld = new Physics.World3D(myRenderer);
+
+// the bounds inside the particle world in meters
+this.myWorld.mBoundsMinV3D = [0, 0, 0];
+// let the world end with the sides of the viewport
+// this requires the camera to be positioned like i do it in the next step
+this.myWorld.mBoundsMaxV3D =  [this.viewportDim[0] * this.myRenderer.px2m, this.viewportDim[1] * 2 * this.myRenderer.px2m, 10];
+
+
+// if you use the line drawing feature, tell the renderer where the line images are
+Renderer.mLineImgPathS = "images/";
+
+// Position the camera so that the worldspace coords [0,0,0] are in the lower left corner
+// of the viewport. 
+this.myRenderer.mCameraPosV3D = [this.viewportDim[0] / 2 * this.myRenderer.px2m, this.viewportDim[1] / 2 * this.myRenderer.px2m, 0];
+
+
+var pyramidLevels = 8;
+var boxwidthPX = 40;
+
+
+buildPyramid( 4,  [this.viewportDim[0] / 2 * this.myRenderer.px2m -5, 1, 1], boxwidthPX );
+buildPyramid( 4,  [this.viewportDim[0] / 2 * this.myRenderer.px2m -5, 1, 2.2], boxwidthPX );
+buildPyramid( 4,  [this.viewportDim[0] / 2 * this.myRenderer.px2m -5, 1, 3.2], boxwidthPX );
+
+ 
+this.sp = new Physics.Spring('sp1', this.myWorld, this.myWorld.mParticlesA[8], this.myWorld.mParticlesA[9], true, 50, 2, 0.2, true);
+this.myWorld.addParticleLine(this.myWorld.mParticlesA[8], this.myWorld.mParticlesA[9]);
+
+
+
+// you can add froces that act on a set of particles e.g. wind (but there is no shadowing)
+// in meters per second squared
+var wind = new Physics.Omni('wind', myWorld, MyUtilities.copyArray(myWorld.mParticlesA), [2, 0, 0]);
+wind.setOn(false);
+var grav = new Physics.OmniMassInd('grav', myWorld, MyUtilities.copyArray(myWorld.mParticlesA), [0, -9.8, 0]);
+
+var selectedFunction = "scale";
+var oldElem = document.getElementById("scale");
+oldElem.style.backgroundColor = "red";
+document.getElementById("grav").style.backgroundColor = "red";
+document.getElementById("grav").clicked = true;
+
+var mousePos = [0,0];
+var mouseDt = 0.05;
+var mouseIDt = 1.0/mouseDt;
+var mousePeriodical = new PeriodicalExecuter(this.mouseUpdater.bind(this), mouseDt);
+var wakeUpPeriodical = null;
+var toWakeUpPA = [];
+var isThisIE = document.all?true:false;
+var draggedB = false;
+var draggedObj = null;
+var markedObj = null
+var startDownN = 0;
+var downB = false;
+if (isThisIE) {
+    document.observe('mousemove' , moveHandlerIE.bindAsEventListener(this));
+}
+else
+{
+    document.observe('mousemove' , moveHandler.bindAsEventListener(this));
+}
+document.observe('mousedown' , downHandler.bindAsEventListener(this));
+document.observe('mouseup' , upHandler.bindAsEventListener(this));
+document.observe('click' , clickHandler.bindAsEventListener(this));
+document.observe('keydown' , keyDownHandler.bindAsEventListener(this));
+
+
+myWorld.start();
+
+
+function wakeUpHandler(){
+    var l = toWakeUpPA.length;
+    var i = 0;
+    var p = null;
+    for (i = 0; i < l; i++)
+    {
+        p = toWakeUpPA[i];
+        if (p.mSleepsB && p.mNumN != -1) p.setAwake(true);
+    }
+}
+function buildPyramid( pyrHeight, startPos, BoxWidthPx){
+    var BoxWidth = BoxWidthPx * myRenderer.px2m;
+    var separation = BoxWidth/(8.0);
+    
+    var pos2 = [0,0,0];
+    var element = null;
+    for (var i = 0; i < pyrHeight; i++)
+    {
+        matv.copyDirect(pos2, startPos);
+        for (var j = i; j < pyrHeight; j++)
+        {
+            var elem = null;
+            elem = newBox('div', ' ', pos2[0], pos2[1], pos2[2], BoxWidthPx);
+            matv.addDirect(pos2, [BoxWidth + separation, 0, 0]);
+        }
+        matv.addDirect(startPos, [(BoxWidth + separation)/2.0, BoxWidth * 2, 0]);
+
+    }
+}
+function newBox(type, content, posx, posy, posz, BoxWidth ){
+
+    element = document.createElement('div');
+    element.innerHTML = ' p' + myWorld.mParticlesA.length;
+    element.innerHTML += content;
+
+    element.id = 'p' + myWorld.mParticlesA.length;
+    jQuery(element).addClass("box");
+    element.style.width = BoxWidth  + 'px';
+    element.style.height = BoxWidth + 'px';
+    element.style.MozUserSelect="none";
+    document.body.appendChild(element);
+    
+    // The DOM Element we use as our Particle Sprite has css dimensions other than 
+		// width and height (eg. fontsize, padding, margin etc) and / or sub elements
+		// (eg. images, divs) that need to be scaled too 
+		element.scaleContent = true;
+		
+		// we need to save all the css dimensions in their 100% scale state
+		this.myRenderer.saveStartDimensions(element, 0, element);
+		
+    //position in meters, box extensions from pos in m, mass in kg, start velocity in m/s2, the representing DOM element
+    element.particle = myWorld.addParticle([posx, posy, posz], [BoxWidth * myRenderer.px2m /2, BoxWidth * myRenderer.px2m /2, BoxWidth * myRenderer.px2m /2], 1, [0,0,0], element);
+    // controls how much of the collision velocitiy is reflected
+    // stacks of blocks will not rest if larger than 0
+    element.particle.mRestitutionN = 0.0;
+    // controls the contact friction
+    element.particle.mFrictionN = 0.5;
+    return element;
+}
+function wakeUpAll(){
+    var l = myWorld.mParticlesA.length;
+    var p1 = null;
+    for (var i  = 0; i  < l; i++)
+    {
+        p1 = myWorld.mParticlesA[i];
+        if (p1 == null) continue;
+        p1.setAwake(true);
+    }
+}
+function clickHandler(e) {
+    if(draggedB){
+      draggedB = false;
+      return;
+    }
+    var elem = e.element();
+    var id = elem.id;
+    if(elem.id == oldElem.id) return;
+    switch(id)
+    {
+        case "start":
+            myWorld.toggleStartStop();
+            if (elem.clicked)
+            {
+                elem.style.backgroundColor = '#666666';
+                elem.clicked = false;
+            }
+            else
+            {
+                elem.style.backgroundColor = "red";
+                elem.clicked = true;
+            }
+            break;
+        case "wind":
+            if (elem.clicked)
+            {
+                elem.style.backgroundColor = "#666666";
+                wind.setOn(false);
+            }
+            else
+            {
+                elem.style.backgroundColor = "red";
+                wind.setOn(true);
+            }
+            elem.clicked = !elem.clicked;
+            wakeUpAll();
+            break;
+        case "grav":
+            if (elem.clicked)
+            {
+                elem.style.backgroundColor = "#666666";
+                grav.setOn(false);
+            }
+            else
+            {
+                elem.style.backgroundColor = "red";
+                grav.setOn(true);
+            }
+            elem.clicked = !elem.clicked;
+            wakeUpAll();
+            break;
+        case "killF":
+            var l = myWorld.mForcesA.length;
+            var f = null;
+            for (var i = 0; i < l; i++)
+            {
+                f = myWorld.mForcesA[i];
+                if (f)
+                {
+                    if (f.mTypeN == 3 || f.mTypeN == 4 )
+                        {
+                            f.mAffectedP.mCanSleepB = true;
+                            f.mSourceP.mCanSleepB = true;
+                            myWorld.killForce(f);
+                        }
+                }
+            }
+            elem.style.backgroundColor = "red";
+            elem.style.backgroundColor = "#666666";
+            break;
+        case "attr":
+        case "kill":
+        case "new":
+        case "move":
+        case "move2":
+        case "z":
+        case "scale":
+        case "spring":
+        case "shake":
+        case "remWind":
+            oldElem.style.backgroundColor = "#666666";
+            elem.style.backgroundColor = "red";
+            oldElem = elem;
+            selectedFunction = id;
+            break;
+        default:
+            p = elem.particle;
+            // the clicked element has a particle and the simulation is running
+            if (p && p.mWorldW3D.mPeriodical)
+            {
+                switch(selectedFunction)
+                {
+                    case "attr":
+                        if (p.mNumN != 20)
+                        {
+                            // last 4 options are: is the source attracted to the other particle
+                            //                     the strength of the attraction
+                            //                     the min and max distance (m) between the particles, for the force to work in
+                            new Physics.Attraction('attrP20', myWorld, p, myWorld.mParticlesA[20], true, -10, 0.5, 3);
+                            p.setAwake(true);
+                            myWorld.mParticlesA[20].setAwake(true);
+                         }
+                    break;
+                    case "spring":
+                        if (p.mNumN != 20)
+                        {
+                            // last 4 options are: is the source pulled to the other particle by the spring
+                            //                     the spring constant
+                            //                     the restlenght of the spring in m
+                            //                      the damping
+                            new Physics.Spring('sprP20', myWorld, p, myWorld.mParticlesA[20], true, 7, 2, 0.2);
+                            p.setAwake(true);
+                            myWorld.mParticlesA[20].setAwake(true);
+                         }
+                    break;
+                    case "kill":
+                        new Effect.PuffP(elem, {duration:0.7, fps: 20, afterFinish: function(effect) {
+                            effect.effects[0].mParticleP.mWorldW3D.killParticle(effect.effects[0].mParticleP);
+                        }});
+
+                    break;
+                    case "remWind":
+                        wind.removeParticle(p);
+                    break;
+                    case "z":
+                        p.setAwake(true);
+                        p.mExternalImpulsesA.push([0, 0, 0.5]);
+                    break;
+                    case "move":
+                        p.mNoForcesB = true;
+                        p.mNoCollImpB = true;
+                        p.mNoIntegrationB = true;
+                        p.mExControlledB = true;
+                     
+                        new Effect.MoveP(elem, {x : 40, y : 0, duration:1, fps: 20, afterFinish: function(effect) {
+                            effect.mParticleP.mNoForcesB = false;
+                            effect.mParticleP.mNoCollImpB = false;
+                            effect.mParticleP.mNoIntegrationB = false;
+                            effect.mParticleP.mExControlledB = false;
+                        }});
+                    break;
+                    case "scale":
+                       if(elem.myCLicked)
+                       {
+                           new Effect.ScaleP(elem, 25, {duration:0.01});
+                           elem.myCLicked = false;
+                       }
+                       else
+                       {
+                           new Effect.ScaleP(elem, 400, {duration:0.01});
+                           elem.myCLicked = true;
+                       }
+                    break;
+                    case "shake":
+                        p.mNoForcesB = true;
+                        p.mNoCollImpB = true;
+                        p.mNoIntegrationB = true;
+                        p.mExControlledB = true;
+                        //p.killCollisions();
+                        new Effect.ShakeP(elem.id, {distance: 20, duration:1, fps: 20, afterFinish: function(effect) {
+                            effect.mParticleP.mNoForcesB = false;
+                            effect.mParticleP.mNoCollImpB = false;
+                            effect.mParticleP.mNoIntegrationB = false;
+                            effect.mParticleP.mExControlledB = false;
+                        }});
+                    break;
+                    case "move2":
+                        //p.mNoForcesB = true;
+                        //p.mNoCollImpB = true;
+                        p.mNoIntegrationB = false;
+                        //p.mExControlledB = true;
+                        //p.killCollisions();
+                        new Effect.MoveImP(elem.id, {x : 40, y : 0, duration:1, fps: 20, afterFinish: function(effect) {
+                            var stepTime = effect.mParticleP.mWorldW3D.mDeltaTimeN;
+                            var leftImpulses = effect.mParticleP.mExternalImpulsesA.length;
+                            // the effect can finish before all impulses from the effect have been applied
+                            // to the particle by the engine. so we wait a litte before we
+                            // apply forces and collisions again on the particle
+                            setTimeout(function (){
+                                //effect.mParticleP.mNoForcesB = false;
+                                effect.mParticleP.mNoCollImpB = false;
+                                //effect.mParticleP.mExControlledB = false;
+                            }.bind(this), stepTime * 1000 * ( leftImpulses+ 1) );
+
+                        }});
+                    break;
+                }
+            }
+            else if(selectedFunction == "new" &&
+                    mousePos[0] > myRenderer.mViewPortOriginV2D[0] &&
+                    mousePos[1] > myRenderer.mViewPortOriginV2D[1] &&
+                    mousePos[0] < myRenderer.mViewPortOriginV2D[0] + myRenderer.mViewPortDimV2D[0] &&
+                    mousePos[1] < myRenderer.mViewPortOriginV2D[1] + myRenderer.mViewPortDimV2D[1])
+            {
+                var pos = myRenderer.screen2world([
+                                                    mousePos[0],
+                                                    mousePos[1], 1]);
+
+                var newElem = newBox('div', '',pos[0] ,pos[1],pos[2], boxwidthPX );
+                wind.addParticle(newElem.particle);
+                grav.addParticle(newElem.particle);
+            }
+            break;
+    }
+}
+function moveHandlerIE(e){
+    mousePos[0] = e.clientX;
+    mousePos[1] = e.clientY;
+}
+function moveHandler(e){
+    mousePos[0] = e.pageX;
+    mousePos[1] = e.pageY;
+}
+function mouseUpdater(){
+    if (downB)
+    {
+        if (startDownN == 0)
+        {
+            startDownN = myWorld.mStepN;
+        }
+        else if (myWorld.mStepN - startDownN > 2)
+        {
+            if (draggedObj)
+            {
+                var p = draggedObj.particle;
+                var newPos = myRenderer.screen2world([mousePos[0], mousePos[1], p.mPosV3D[2]]);
+                p.externUpdatePos(newPos, mouseIDt);
+            }
+            else
+            {
+                draggedObj = markedObj;
+                var p = markedObj.particle;
+                p.mNoForcesB = true;
+                p.mNoCollImpB = true;
+                //p.mNoCollB = true;
+                p.mNoIntegrationB = true;
+                
+                //p.mCanSleepB = false;
+                p.mExControlledB = true;
+                p.setAwake(true);
+                p.killCollisions();
+
+                var l = p.mAffectedByA.length;
+                var f = null;
+
+                // if the dragged particle is conntected to forces or springs
+                // all the connected particles need to be woke up periodically
+                // because the code that would wake them up otherwise, located
+                // in the force calculation during integration is not called
+                // when the particle is dragged
+                for (var i = 0; i < l; i++)
+                {
+                    f = p.mAffectedByA[i];
+                    if (f)
+                    {
+                        if (f.mTypeN == 3 || f.mTypeN == 4 )
+                            {
+                                // check if there are other forces that keep the particle awake is missing
+                                if (f.mAffectedP.mNumN !== p.mNumN)
+                                {
+                                    toWakeUpPA.push(f.mAffectedP);
+                                    if (f.mAffectedP.mSleepsB && f.mAffectedP.mNumN != -1) f.mAffectedP.setAwake(true);
+                                }
+                                else
+                                {
+                                    toWakeUpPA.push(f.mSourceP);
+                                    if (f.mSourceP.mSleepsB && f.mSourceP.mNumN != -1) f.mSourceP.setAwake(true);
+                                }
+                            }
+                    }
+                }
+                wakeUpPeriodical = new PeriodicalExecuter(this.wakeUpHandler.bind(window), 1);
+            }
+        }
+    }
+}
+function downHandler(e){
+    if (e.element().particle)
+    {
+        markedObj = e.element();
+        downB = true;
+    }
+}
+function upHandler(e){
+    if (draggedObj)
+    {
+        draggedB = true;
+        var p = draggedObj.particle;
+        p.mNoForcesB = false;
+        p.mNoCollImpB = false;
+        p.mNoCollB = false;
+        p.mNoIntegrationB = false;
+        //p.mCanSleepB = true;
+        p.mExControlledB = false;
+        wakeUpPeriodical.stop();
+        wakeUpPeriodical = null;
+        toWakeUpPA = [];
+    }
+    draggedObj = null;
+    downB = false;
+    startDownN = 0;
+}
+function keyDownHandler(e){
+    //console.log(e.keyCode);
+    switch (e.keyCode)
+    {
+        // up
+        case 38:
+            myRenderer.mCameraPosV3D[2]+= 0.05;
+            break;
+        //down
+        case 40:
+            myRenderer.mCameraPosV3D[2]-= 0.05;
+            break;
+        //left
+        case 37:
+            myRenderer.mCameraPosV3D[0]-= 0.05;
+            break;
+        //right
+        case 39:
+            myRenderer.mCameraPosV3D[0]+= 0.05;
+            break;
+        // s
+        case 33:
+            myRenderer.mCameraPosV3D[1]-= 0.05;
+            break;
+        // w
+        case 34:
+            myRenderer.mCameraPosV3D[1]+= 0.05;
+            break;
+        default:
+            break;
+    }
+    myWorld.reDrawAll();
+}
+</script>
+</body>
+</html>
