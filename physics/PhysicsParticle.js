@@ -1,5 +1,7 @@
 // PhysicsParticle.js
-// Copyright (c) Christoph Pacher (http://www.christophpacher.com)
+// Copyright (c) 2008-2010 Christoph Pacher (http://www.christophpacher.com)
+//
+// This physics library is freely distributable under the terms of an MIT-style license.
 Physics.Particle = Class.create(
 {
     initialize: function(pWorldW3D, pPosV3D, pExtV3D, pMassN, pVelocityV3D, pSpriteO, pNumN){

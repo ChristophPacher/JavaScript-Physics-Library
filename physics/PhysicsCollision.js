@@ -1,5 +1,7 @@
 // PhysicsCollisions.js
-// Copyright (c) Christoph Pacher (http://www.christophpacher.com)
+// Copyright (c) 2008-2010 Christoph Pacher (http://www.christophpacher.com)
+//
+// This physics library is freely distributable under the terms of an MIT-style license.
 // Collisions impulses base on the theroy of Erin Catto's sequential impulses
 Physics.Collision = Class.create(
 {

@@ -1,5 +1,7 @@
 // EffectsParticle.js
-// Copyright (c) Christoph Pacher (http://www.christophpacher.com)
+// Copyright (c) 2008-2010 Christoph Pacher (http://www.christophpacher.com)
+//
+// This physics library is freely distributable under the terms of an MIT-style license.
 
 Effect.ScaleP = Class.create(Effect.Scale, {
   initialize: function(element, percent) {
